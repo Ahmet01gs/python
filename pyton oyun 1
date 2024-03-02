@@ -1,0 +1,169 @@
+import pygame
+import random
+
+# Oyun alanı boyutları
+WIDTH, HEIGHT = 10, 20
+WINDOW_SIZE = (300, 600)
+
+# Renkler
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+COLORS = [(0, 0, 0), (255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0)]
+
+# Tetromino figürleri
+SHAPES = [
+    [[1, 1, 1, 1]],
+    [[1, 1], [1, 1]],
+    [[1, 1, 1], [0, 1, 0]],
+    [[1, 1, 1], [1, 0, 0]],
+    [[1, 1, 1], [0, 0, 1]],
+    [[1, 1, 1], [0, 1, 0]],
+    [[1, 1, 1], [1, 0, 0]]
+]
+
+# Tetromino renkleri
+SHAPE_COLORS = [1, 2, 3, 4, 5, 6, 7]
+
+# Oyun alanı ve başlangıç yüksekliği
+grid = [[0 for _ in range(WIDTH)] for _ in range(HEIGHT)]
+start_y = HEIGHT - 1
+
+# Tetromino sınıfı
+class Tetromino:
+    def __init__(self, shape, color):
+        self.shape = shape
+        self.color = color
+        self.x = WIDTH // 2 - len(shape[0]) // 2
+        self.y = start_y
+
+    def move(self, dx, dy):
+        self.x += dx
+        self.y += dy
+
+    def rotate(self):
+        self.shape = [list(row) for row in zip(*self.shape[::-1])]
+
+    def can_move(self, dx, dy, grid):
+        for y, row in enumerate(self.shape):
+            for x, cell in enumerate(row):
+                if cell:
+                    new_x = self.x + x + dx
+                    new_y = self.y + y + dy
+                    if (
+                        new_x < 0
+                        or new_x >= WIDTH
+                        or new_y < 0
+                        or new_y >= HEIGHT
+                        or grid[new_y][new_x]
+                    ):
+                        return False
+        return True
+
+    def place(self, grid):
+        for y, row in enumerate(self.shape):
+            for x, cell in enumerate(row):
+                if cell:
+                    grid[self.y + y][self.x + x] = self.color
+
+# Oyun başlatma
+def init_game():
+    global grid, current_piece
+    grid = [[0 for _ in range(WIDTH)] for _ in range(HEIGHT)]
+    current_piece = new_tetromino()
+
+# Yeni tetromino oluşturma
+def new_tetromino():
+    shape = random.choice(SHAPES)
+    color = SHAPE_COLORS[SHAPES.index(shape)]
+    return Tetromino(shape, color)
+
+# Tetromino'nun düşüşünü kontrol etme
+def handle_piece_drop():
+    if not current_piece.can_move(0, -1, grid):
+        current_piece.place(grid)
+        check_lines()
+        new_piece()
+
+# Oyunda tamamlanan satırları kontrol etme ve temizleme
+def check_lines():
+    global grid
+    lines_to_clear = [i for i, row in enumerate(grid) if all(row)]
+    for line in lines_to_clear:
+        grid.pop(line)
+        grid.insert(0, [0 for _ in range(WIDTH)])
+
+# Tetromino'nun yeni bir taneyle değiştirilmesi
+def new_piece():
+    global current_piece
+    current_piece = new_tetromino()
+    if not current_piece.can_move(0, 0, grid):
+        init_game()
+
+# Oyunun ana döngüsü
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode(WINDOW_SIZE)
+    pygame.display.set_caption("Tetris")
+
+    init_game()
+    clock = pygame.time.Clock()
+    game_over = False
+
+    while not game_over:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                game_over = True
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    if current_piece.can_move(-1, 0, grid):
+                        current_piece.move(-1, 0)
+                elif event.key == pygame.K_RIGHT:
+                    if current_piece.can_move(1, 0, grid):
+                        current_piece.move(1, 0)
+                elif event.key == pygame.K_DOWN:
+                    if current_piece.can_move(0, -1, grid):
+                        current_piece.move(0, -1)
+                elif event.key == pygame.K_UP:
+                    current_piece.rotate()
+
+        handle_piece_drop()
+
+        screen.fill(BLACK)
+
+        # Oyun alanını çizme
+        for y, row in enumerate(grid):
+            for x, cell in enumerate(row):
+                if cell:
+                    pygame.draw.rect(
+                        screen,
+                        COLORS[cell],
+                        pygame.Rect(
+                            x * (WINDOW_SIZE[0] // WIDTH),
+                            (HEIGHT - 1 - y) * (WINDOW_SIZE[1] // HEIGHT),
+                            WINDOW_SIZE[0] // WIDTH,
+                            WINDOW_SIZE[1] // HEIGHT,
+                        ),
+                    )
+
+        # Mevcut tetrominoyu çizme
+        for y, row in enumerate(current_piece.shape):
+            for x, cell in enumerate(row):
+                if cell:
+                    pygame.draw.rect(
+                        screen,
+                        COLORS[current_piece.color],
+                        pygame.Rect(
+                            (current_piece.x + x) * (WINDOW_SIZE[0] // WIDTH),
+                            (HEIGHT - 1 - current_piece.y - y) * (WINDOW_SIZE[1] // HEIGHT),
+                            WINDOW_SIZE[0] // WIDTH,
+                            WINDOW_SIZE[1] // HEIGHT,
+                        ),
+                    )
+
+        pygame.display.flip()
+        clock.tick(5)  # Oyun hızı
+
+    pygame.quit()
+
+if __name__ == "__main__":
+    main()

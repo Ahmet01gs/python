@@ -1,0 +1,65 @@
+import pygame
+import random
+
+# Oyun ekranı boyutları
+WIDTH, HEIGHT = 800, 600
+
+# Renk tanımları
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+
+# Arabanın başlangıç konumu
+car_x = WIDTH // 2
+car_y = HEIGHT - 100
+
+# Araba hızı
+car_speed = 5
+
+# Araba resmi
+car_image = pygame.image.load('car.png')
+
+# Araba resmini yeniden boyutlandır
+car_image = pygame.transform.scale(car_image, (50, 100))
+
+# Rakip arabaların listesi
+enemies = []
+
+# Oyun penceresini başlat
+pygame.init()
+window = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption('Car Game')
+
+# Ana oyun döngüsü
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    # Arabayı hareket ettir
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT]:
+        car_x -= car_speed
+    if keys[pygame.K_RIGHT]:
+        car_x += car_speed
+
+    # Rakip arabaları oluştur
+    if len(enemies) < 5:
+        enemy_x = random.randint(0, WIDTH - 50)
+        enemy_y = random.randint(-100, 0)
+        enemies.append([enemy_x, enemy_y])
+
+    # Rakip arabaları hareket ettir ve çiz
+    window.fill(WHITE)
+    for enemy in enemies:
+        enemy[1] += 5
+        pygame.draw.rect(window, RED, [enemy[0], enemy[1], 50, 100])
+
+    # Arabayı çiz
+    window.blit(car_image, (car_x, car_y))
+
+    # Oyun alanını güncelle
+    pygame.display.update()
+
+# Oyun döngüsünden çıkınca oyunu kapat
+pygame.quit()
